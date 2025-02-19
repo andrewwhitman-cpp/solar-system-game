@@ -490,9 +490,12 @@ function updatePlanet(planet, dt) {
     // Calculate current speed
     const speed = Math.sqrt(planet.vx * planet.vx + planet.vy * planet.vy);
     
-    // Track max orbit radius
+    // Track min and max orbit radius
     if (!planet.maxOrbitRadius || distance > planet.maxOrbitRadius) {
         planet.maxOrbitRadius = distance;
+    }
+    if (!planet.minOrbitRadius || distance < planet.minOrbitRadius) {
+        planet.minOrbitRadius = distance;
     }
     
     // Track top speed
@@ -536,10 +539,10 @@ function updatePlanet(planet, dt) {
         const avgOrbitRadius = (planet.maxOrbitRadius + planet.minOrbitRadius) / 2;
         const orbitRadiusScore = Math.floor(avgOrbitRadius ** 2 / 50);
         
-        // Calculate speed stability multiplier
-        const speedRange = planet.topSpeed - planet.minSpeed;
-        const speedRangeThreshold = 5; // Threshold for maximum multiplier
-        const stabilityMultiplier = Math.min(5, Math.max(1, Math.floor(speedRangeThreshold / speedRange)));
+        // Calculate orbit stability multiplier based on radius consistency
+        const orbitRadiusRange = planet.maxOrbitRadius - planet.minOrbitRadius;
+        const radiusRangeThreshold = 100; // Threshold for maximum multiplier
+        const stabilityMultiplier = Math.min(5, Math.max(1, Math.floor(radiusRangeThreshold / orbitRadiusRange)));
         
         // Base orbit completion bonus plus radius-based bonus, multiplied by stability factor
         let orbitBonus = (100 + orbitRadiusScore) * stabilityMultiplier;
