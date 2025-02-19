@@ -423,6 +423,8 @@ function handleKeyPress(e) {
         resetGame();
     } else if (e.key.toLowerCase() === 'm') {
         toggleMusic();
+    } else if (e.key.toLowerCase() === 'n') {
+        playNextTrack();
     }
 }
 
