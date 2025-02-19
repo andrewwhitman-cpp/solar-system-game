@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbital Physics Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 1px solid #333;
+            position: absolute;
+        }
+        #backgroundCanvas {
+            z-index: 1;
+        }
+        #gameCanvas {
+            z-index: 2;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 3;
+        }
+        #score {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="backgroundCanvas"></canvas>
+    <div id="controls">
+        <p>Click and drag to launch planets</p>
+        <p>Press R to reset</p>
+    </div>
+    <div id="score">Score: <span id="scoreValue">0</span> | Lives: <span id="livesValue">3</span></div>
+    <div id="levelInfo">
+        <h2>Level <span id="levelNumber">1</span></h2>
+        <p id="levelMessage"></p>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script src="game.js"></script>
+</body>
+</html>
