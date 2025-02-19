@@ -24,18 +24,61 @@
         #gameCanvas {
             z-index: 2;
         }
-        #controls {
+        .menu-button {
             position: fixed;
-            top: 10px;
-            left: 10px;
+            top: 30px;
+            left: 30px;
             color: white;
             font-family: Arial, sans-serif;
             z-index: 3;
+            font-size: 16px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .menu-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 4;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay-content {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .close-button {
+            margin-top: 20px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        .close-button:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
         #score {
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 30px;
+            right: 30px;
             color: white;
             font-family: Arial, sans-serif;
             z-index: 3;
@@ -47,10 +90,16 @@
         <source src="public/audio/Orbital Resonance - Applefish.mp3" type="audio/mp3">
     </audio>
     <canvas id="backgroundCanvas"></canvas>
-    <div id="controls">
-        <p>Click and drag to launch planets</p>
-        <p>Press R to reset</p>
-        <p>Press M to toggle music</p>
+    <div id="menuButton" class="menu-button">☰ Menu</div>
+    <div id="instructionsOverlay" class="overlay">
+        <div class="overlay-content">
+            <h2>Instructions</h2>
+            <p>Click and drag to launch planets</p>
+            <p>Press R to reset</p>
+            <p>Press M to toggle music</p>
+            <p>Press N to go to the next track</p>
+            <button id="closeInstructions" class="close-button">Close</button>
+        </div>
     </div>
     <div id="score">Score: <span id="scoreValue">0</span></div>
     <div id="levelInfo">
@@ -59,5 +108,6 @@
     </div>
     <canvas id="gameCanvas"></canvas>
     <script src="game.js"></script>
+    <script src="menu.js"></script>
 </body>
 </html>
