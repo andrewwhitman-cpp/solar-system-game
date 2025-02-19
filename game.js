@@ -751,8 +751,8 @@ function updateAsteroids() {
         const dy = asteroid.y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Target distance from center (increased to 90% of screen edge)
-        const targetDistance = Math.min(canvas.width, canvas.height) * 0.45;
+        // Fixed distance of 300 units from the sun
+        const targetDistance = 300;
         
         // Adjust position to maintain circular path
         const angle = Math.atan2(dy, dx);
