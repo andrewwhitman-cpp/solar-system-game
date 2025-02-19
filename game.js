@@ -287,6 +287,7 @@ function init() {
 function startDrag(e) {
     isDragging = true;
     dragStart = getMousePos(e);
+    initMusicOnFirstInteraction();
 }
 
 function drag(e) {
@@ -406,10 +407,18 @@ function toggleMusic() {
 // Add event listener for when a track ends
 bgMusic.addEventListener('ended', playNextTrack);
 
-// Initialize with a random track and start playing
-playNextTrack();
+// Initialize music system but don't autoplay
+let hasUserInteracted = false;
+
+function initMusicOnFirstInteraction() {
+    if (!hasUserInteracted) {
+        hasUserInteracted = true;
+        playNextTrack();
+    }
+}
 
 function handleKeyPress(e) {
+    initMusicOnFirstInteraction();
     if (e.key.toLowerCase() === 'r') {
         resetGame();
     } else if (e.key.toLowerCase() === 'm') {
