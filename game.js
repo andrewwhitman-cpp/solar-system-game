@@ -364,8 +364,8 @@ const musicTracks = [
     'audio/Andromeda Applefish.mp3',
     'audio/Astrosat Applefish.mp3',
     'audio/Earthrise Applefish.mp3',
-    'audio/Event Horizon - Applefish.mp3',
-    'audio/In Orbit - Applefish.mp3',
+    // 'audio/Event Horizon - Applefish.mp3',
+    // 'audio/In Orbit - Applefish.mp3',
     'audio/Into the Aether - Applefish.mp3',
     'audio/Orbital Resonance - Applefish.mp3',
     'audio/Particles - Applefish.mp3',
@@ -388,9 +388,10 @@ function getRandomTrackIndex() {
 function playNextTrack() {
     currentTrackIndex = getRandomTrackIndex();
     bgMusic.src = musicTracks[currentTrackIndex];
-    if (isMusicPlaying) {
-        bgMusic.play();
-    }
+    bgMusic.play().catch(error => {
+        console.log('Autoplay prevented:', error);
+        isMusicPlaying = false;
+    });
 }
 
 function toggleMusic() {
@@ -405,7 +406,7 @@ function toggleMusic() {
 // Add event listener for when a track ends
 bgMusic.addEventListener('ended', playNextTrack);
 
-// Initialize with a random track
+// Initialize with a random track and start playing
 playNextTrack();
 
 function handleKeyPress(e) {
