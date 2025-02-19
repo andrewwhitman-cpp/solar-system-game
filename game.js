@@ -547,6 +547,70 @@ function updatePlanet(planet, dt) {
 
     }
     
+    // Check for asteroid threading
+    const THREADING_DISTANCE = 75; // Distance threshold for threading detection
+    const MIN_SAFE_DISTANCE = 20; // Minimum safe distance to avoid collision
+    const MIN_DISTANCE_FOR_NEW_BONUS = 150; // Minimum distance required from last bonus position
+    
+    // Initialize last threading position if not exists
+    if (!planet.lastThreadingX) {
+        planet.lastThreadingX = null;
+        planet.lastThreadingY = null;
+    }
+    
+    // Find pairs of nearby asteroids
+    for (let i = 0; i < asteroids.length; i++) {
+        for (let j = i + 1; j < asteroids.length; j++) {
+            const ast1 = asteroids[i];
+            const ast2 = asteroids[j];
+            
+            // Calculate distances between planet and both asteroids
+            const d1 = Math.sqrt((planet.x - ast1.x) ** 2 + (planet.y - ast1.y) ** 2);
+            const d2 = Math.sqrt((planet.x - ast2.x) ** 2 + (planet.y - ast2.y) ** 2);
+            
+            // Check if both asteroids are within threading distance
+            if (d1 < THREADING_DISTANCE && d2 < THREADING_DISTANCE) {
+                // Calculate if planet is between asteroids
+                const astDist = Math.sqrt((ast1.x - ast2.x) ** 2 + (ast1.y - ast2.y) ** 2);
+                
+                // Use triangle perimeter comparison for between-ness check
+                if (Math.abs((d1 + d2) - astDist) < 1) {
+                    // Ensure safe distance from both asteroids
+                    if (d1 > MIN_SAFE_DISTANCE && d2 > MIN_SAFE_DISTANCE) {
+                        // Check distance from last threading bonus position
+                        let canAwardBonus = true;
+                        if (planet.lastThreadingX !== null) {
+                            const distFromLastBonus = Math.sqrt(
+                                (planet.x - planet.lastThreadingX) ** 2 + 
+                                (planet.y - planet.lastThreadingY) ** 2
+                            );
+                            canAwardBonus = distFromLastBonus >= MIN_DISTANCE_FOR_NEW_BONUS;
+                        }
+                        
+                        if (canAwardBonus) {
+                            // Calculate bonus based on threading precision
+                            const precision = 1 - Math.min(d1, d2) / THREADING_DISTANCE;
+                            const bonus = Math.floor(2500 * precision);
+                            
+                            score += bonus;
+                            document.getElementById('scoreValue').textContent = score;
+                            textPopups.push(new TextPopup(
+                                planet.x,
+                                planet.y - planet.radius - 20,
+                                "Asteroid Threading!",
+                                bonus
+                            ));
+                            
+                            // Update last threading position
+                            planet.lastThreadingX = planet.x;
+                            planet.lastThreadingY = planet.y;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     return true;
 }
 
