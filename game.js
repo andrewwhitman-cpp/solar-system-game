@@ -493,6 +493,11 @@ function updatePlanet(planet, dt) {
         planet.topSpeed = speed;
     }
     
+    // Track minimum speed
+    if (!planet.minSpeed || speed < planet.minSpeed) {
+        planet.minSpeed = speed;
+    }
+    
     // Track orbit shape (store min and max radius)
     if (!planet.minOrbitRadius || distance < planet.minOrbitRadius) {
         planet.minOrbitRadius = distance;
@@ -522,29 +527,29 @@ function updatePlanet(planet, dt) {
     if (Math.abs(planet.totalRotation) >= 2 * Math.PI) {
         // Calculate orbit radius score based on average orbit radius
         const avgOrbitRadius = (planet.maxOrbitRadius + planet.minOrbitRadius) / 2;
-        // const orbitRadiusScore = Math.floor(avgOrbitRadius * 5); // Points scale with orbit size
         const orbitRadiusScore = Math.floor(avgOrbitRadius ** 2 / 50);
         
-        // Calculate speed-based multiplier (inverse relationship with speed)
-        // const speedMultiplier = Math.max(1, Math.floor(10 / planet.topSpeed));
-        const speedMultiplier = 1;
+        // Calculate speed stability multiplier
+        const speedRange = planet.topSpeed - planet.minSpeed;
+        const speedRangeThreshold = 5; // Threshold for maximum multiplier
+        const stabilityMultiplier = Math.min(5, Math.max(1, Math.floor(speedRangeThreshold / speedRange)));
         
-        // Base orbit completion bonus plus radius-based bonus, multiplied by speed factor
-        let orbitBonus = (100 + orbitRadiusScore) * speedMultiplier;
+        // Base orbit completion bonus plus radius-based bonus, multiplied by stability factor
+        let orbitBonus = (100 + orbitRadiusScore) * stabilityMultiplier;
         
         score += orbitBonus;
         document.getElementById('scoreValue').textContent = score;
         planet.totalRotation = 0;
         
-        // Show orbit bonus popup with speed multiplier info
-        const bonusText = speedMultiplier > 1 ? `Orbit Bonus (${speedMultiplier}x slower orbit)` : "Orbit Bonus";
+        // Show orbit bonus popup with stability multiplier info
+        const bonusText = stabilityMultiplier > 1 ? `Orbit Bonus (${stabilityMultiplier}x stable orbit)` : "Orbit Bonus";
         textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, bonusText, orbitBonus));
         
         // Reset orbit tracking for next orbit
         planet.minOrbitRadius = null;
         planet.maxOrbitRadius = null;
         planet.topSpeed = null;
-
+        planet.minSpeed = null;
     }
     
     // Check for asteroid threading
