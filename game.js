@@ -130,9 +130,16 @@ class TextPopup {
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
         
-        // Use red for negative points, white for positive
-        const color = this.points < 0 ? 'red' : 'white';
-        ctx.fillStyle = `rgba(${color === 'red' ? '255, 0, 0' : '255, 255, 255'}, ${this.opacity})`;
+        // Use red for negative points, green for stable orbits, white for others
+        let color;
+        if (this.points < 0) {
+            color = 'red';
+        } else if (this.text.includes('stable orbit')) {
+            color = 'green'; // Bright green
+        } else {
+            color = 'white';
+        }
+        ctx.fillStyle = `rgba(${color === 'red' ? '255, 0, 0' : color === 'green' ? '0, 255, 0' : '255, 255, 255'}, ${this.opacity})`;
         
         // Add plus sign only for positive points
         const pointsText = this.points < 0 ? this.points : `+${this.points}`;
@@ -483,14 +490,22 @@ function updatePlanet(planet, dt) {
     // Calculate current speed
     const speed = Math.sqrt(planet.vx * planet.vx + planet.vy * planet.vy);
     
-    // Track max orbit radius
+    // Track min and max orbit radius
     if (!planet.maxOrbitRadius || distance > planet.maxOrbitRadius) {
         planet.maxOrbitRadius = distance;
+    }
+    if (!planet.minOrbitRadius || distance < planet.minOrbitRadius) {
+        planet.minOrbitRadius = distance;
     }
     
     // Track top speed
     if (!planet.topSpeed || speed > planet.topSpeed) {
         planet.topSpeed = speed;
+    }
+    
+    // Track minimum speed
+    if (!planet.minSpeed || speed < planet.minSpeed) {
+        planet.minSpeed = speed;
     }
     
     // Track orbit shape (store min and max radius)
@@ -522,29 +537,94 @@ function updatePlanet(planet, dt) {
     if (Math.abs(planet.totalRotation) >= 2 * Math.PI) {
         // Calculate orbit radius score based on average orbit radius
         const avgOrbitRadius = (planet.maxOrbitRadius + planet.minOrbitRadius) / 2;
-        // const orbitRadiusScore = Math.floor(avgOrbitRadius * 5); // Points scale with orbit size
         const orbitRadiusScore = Math.floor(avgOrbitRadius ** 2 / 50);
         
-        // Calculate speed-based multiplier (inverse relationship with speed)
-        // const speedMultiplier = Math.max(1, Math.floor(10 / planet.topSpeed));
-        const speedMultiplier = 1;
+        // Calculate orbit stability multiplier based on radius consistency
+        const orbitRadiusRange = planet.maxOrbitRadius - planet.minOrbitRadius;
+        const radiusRangeThreshold = 100; // Threshold for maximum multiplier
+        const stabilityMultiplier = Math.min(5, Math.max(1, Math.floor(radiusRangeThreshold / orbitRadiusRange)));
         
-        // Base orbit completion bonus plus radius-based bonus, multiplied by speed factor
-        let orbitBonus = (100 + orbitRadiusScore) * speedMultiplier;
+        // Base orbit completion bonus plus radius-based bonus, multiplied by stability factor
+        let orbitBonus = (100 + orbitRadiusScore) * stabilityMultiplier;
         
         score += orbitBonus;
         document.getElementById('scoreValue').textContent = score;
         planet.totalRotation = 0;
         
-        // Show orbit bonus popup with speed multiplier info
-        const bonusText = speedMultiplier > 1 ? `Orbit Bonus (${speedMultiplier}x slower orbit)` : "Orbit Bonus";
+        // Show orbit bonus popup with stability multiplier info
+        const bonusText = stabilityMultiplier > 1 ? `Orbit Bonus (${stabilityMultiplier}x stable orbit)` : "Orbit Bonus";
         textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, bonusText, orbitBonus));
         
         // Reset orbit tracking for next orbit
         planet.minOrbitRadius = null;
         planet.maxOrbitRadius = null;
         planet.topSpeed = null;
-
+        planet.minSpeed = null;
+    }
+    
+    // Check for asteroid threading
+    const THREADING_DISTANCE = 75; // Distance threshold for threading detection
+    const MIN_SAFE_DISTANCE = 20; // Minimum safe distance to avoid collision
+    const MIN_DISTANCE_FOR_NEW_BONUS = 150; // Minimum distance required from last bonus position
+    
+    // Initialize last threading position if not exists
+    if (!planet.lastThreadingX) {
+        planet.lastThreadingX = null;
+        planet.lastThreadingY = null;
+    }
+    
+    // Find pairs of nearby asteroids
+    for (let i = 0; i < asteroids.length; i++) {
+        for (let j = i + 1; j < asteroids.length; j++) {
+            const ast1 = asteroids[i];
+            const ast2 = asteroids[j];
+            
+            // Calculate distances between planet and both asteroids
+            const d1 = Math.sqrt((planet.x - ast1.x) ** 2 + (planet.y - ast1.y) ** 2);
+            const d2 = Math.sqrt((planet.x - ast2.x) ** 2 + (planet.y - ast2.y) ** 2);
+            
+            // Check if both asteroids are within threading distance
+            if (d1 < THREADING_DISTANCE && d2 < THREADING_DISTANCE) {
+                // Calculate if planet is between asteroids
+                const astDist = Math.sqrt((ast1.x - ast2.x) ** 2 + (ast1.y - ast2.y) ** 2);
+                
+                // Use triangle perimeter comparison for between-ness check
+                if (Math.abs((d1 + d2) - astDist) < 1) {
+                    // Ensure safe distance from both asteroids
+                    if (d1 > MIN_SAFE_DISTANCE && d2 > MIN_SAFE_DISTANCE) {
+                        // Check distance from last threading bonus position
+                        let canAwardBonus = true;
+                        if (planet.lastThreadingX !== null) {
+                            const distFromLastBonus = Math.sqrt(
+                                (planet.x - planet.lastThreadingX) ** 2 + 
+                                (planet.y - planet.lastThreadingY) ** 2
+                            );
+                            canAwardBonus = distFromLastBonus >= MIN_DISTANCE_FOR_NEW_BONUS;
+                        }
+                        
+                        if (canAwardBonus) {
+                            // Calculate bonus based on threading precision
+                            // const precision = 1 - Math.min(d1, d2) / THREADING_DISTANCE;
+                            const precision = 1 / (Math.log(Math.min(d1, d1) / THREADING_DISTANCE + 1));
+                            const bonus = Math.floor(2500 * precision);
+                            
+                            score += bonus;
+                            document.getElementById('scoreValue').textContent = score;
+                            textPopups.push(new TextPopup(
+                                planet.x,
+                                planet.y - planet.radius - 20,
+                                "Asteroid Threading!",
+                                bonus
+                            ));
+                            
+                            // Update last threading position
+                            planet.lastThreadingX = planet.x;
+                            planet.lastThreadingY = planet.y;
+                        }
+                    }
+                }
+            }
+        }
     }
     
     return true;
