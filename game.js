@@ -589,7 +589,8 @@ function updatePlanet(planet, dt) {
                         
                         if (canAwardBonus) {
                             // Calculate bonus based on threading precision
-                            const precision = 1 - Math.min(d1, d2) / THREADING_DISTANCE;
+                            // const precision = 1 - Math.min(d1, d2) / THREADING_DISTANCE;
+                            const precision = 1 / (Math.log(Math.min(d1, d1) / THREADING_DISTANCE + 1));
                             const bonus = Math.floor(2500 * precision);
                             
                             score += bonus;
