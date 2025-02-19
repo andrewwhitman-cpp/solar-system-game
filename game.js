@@ -130,9 +130,16 @@ class TextPopup {
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
         
-        // Use red for negative points, white for positive
-        const color = this.points < 0 ? 'red' : 'white';
-        ctx.fillStyle = `rgba(${color === 'red' ? '255, 0, 0' : '255, 255, 255'}, ${this.opacity})`;
+        // Use red for negative points, green for stable orbits, white for others
+        let color;
+        if (this.points < 0) {
+            color = 'red';
+        } else if (this.text.includes('stable orbit')) {
+            color = 'green'; // Bright green
+        } else {
+            color = 'white';
+        }
+        ctx.fillStyle = `rgba(${color === 'red' ? '255, 0, 0' : color === 'green' ? '0, 255, 0' : '255, 255, 255'}, ${this.opacity})`;
         
         // Add plus sign only for positive points
         const pointsText = this.points < 0 ? this.points : `+${this.points}`;
