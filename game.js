@@ -354,9 +354,65 @@ function endDrag(e) {
     planets.push(planet);
 }
 
+// Audio control
+const bgMusic = document.getElementById('bgMusic');
+let isMusicPlaying = true;
+let currentTrackIndex = -1;
+
+// List of all available music tracks
+const musicTracks = [
+    'audio/Andromeda Applefish.mp3',
+    'audio/Astrosat Applefish.mp3',
+    'audio/Earthrise Applefish.mp3',
+    'audio/Event Horizon - Applefish.mp3',
+    'audio/In Orbit - Applefish.mp3',
+    'audio/Into the Aether - Applefish.mp3',
+    'audio/Orbital Resonance - Applefish.mp3',
+    'audio/Particles - Applefish.mp3',
+    'audio/Primordial Soup - Applefish.mp3',
+    'audio/Starsoaked - Applefish.mp3',
+    'audio/The Ocean Held Me Close in Its Arms - Applefish.mp3'
+];
+
+// Function to get a random track index different from the current one
+function getRandomTrackIndex() {
+    if (musicTracks.length <= 1) return 0;
+    let newIndex;
+    do {
+        newIndex = Math.floor(Math.random() * musicTracks.length);
+    } while (newIndex === currentTrackIndex);
+    return newIndex;
+}
+
+// Function to play the next random track
+function playNextTrack() {
+    currentTrackIndex = getRandomTrackIndex();
+    bgMusic.src = musicTracks[currentTrackIndex];
+    if (isMusicPlaying) {
+        bgMusic.play();
+    }
+}
+
+function toggleMusic() {
+    if (isMusicPlaying) {
+        bgMusic.pause();
+    } else {
+        bgMusic.play();
+    }
+    isMusicPlaying = !isMusicPlaying;
+}
+
+// Add event listener for when a track ends
+bgMusic.addEventListener('ended', playNextTrack);
+
+// Initialize with a random track
+playNextTrack();
+
 function handleKeyPress(e) {
     if (e.key.toLowerCase() === 'r') {
         resetGame();
+    } else if (e.key.toLowerCase() === 'm') {
+        toggleMusic();
     }
 }
 
