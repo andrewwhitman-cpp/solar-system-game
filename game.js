@@ -613,7 +613,7 @@ function updatePlanet(planet, dt) {
         // Calculate orbit stability multiplier based on radius consistency
         const orbitRadiusRange = planet.maxOrbitRadius - planet.minOrbitRadius;
         // const radiusRangeThreshold = 100; // Threshold for maximum multiplier
-        const stabilityRangeScore = Math.floor((2500 / (orbitRadiusRange + 100)) - 10);
+        const stabilityRangeScore = Math.floor((2500 / (orbitRadiusRange + 100)) - 12);
         const stabilityMultiplier = Math.min(10, Math.max(1, stabilityRangeScore));
         
         // Base orbit completion bonus plus radius-based bonus, multiplied by stability factor
