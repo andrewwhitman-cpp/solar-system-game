@@ -2,6 +2,10 @@
 const G = 0.2; // Increased gravitational constant for stronger pull
 const MIN_DISTANCE = 5;
 
+// Player and leaderboard variables
+let currentPlayer = null;
+let leaderboardData = [];
+
 // Star type definitions based on real stellar classifications
 const STAR_TYPES = {
     O: { // Blue supergiants
@@ -250,6 +254,32 @@ function createAsteroid() {
 
 // Initialize game
 function init() {
+    // Check if player name exists in localStorage
+    const storedPlayerName = localStorage.getItem('playerName');
+    if (storedPlayerName) {
+        currentPlayer = storedPlayerName;
+        document.getElementById('playerNameOverlay').style.display = 'none';
+        startGame();
+        return;
+    }
+
+    // Handle player name form submission
+    const playerNameForm = document.getElementById('playerNameForm');
+    playerNameForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const playerNameInput = document.getElementById('playerNameInput');
+        const playerName = playerNameInput.value.trim();
+        if (playerName) {
+            currentPlayer = playerName;
+            // Store player name in localStorage
+            localStorage.setItem('playerName', playerName);
+            document.getElementById('playerNameOverlay').style.display = 'none';
+            startGame();
+        }
+    });
+}
+
+function startGame() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     
@@ -280,6 +310,45 @@ function init() {
     canvas.addEventListener('mousemove', drag);
     canvas.addEventListener('mouseup', endDrag);
     document.addEventListener('keydown', handleKeyPress);
+    
+    // Add leaderboard button
+    const leaderboardButton = document.createElement('div');
+    leaderboardButton.id = 'leaderboardButton';
+    leaderboardButton.textContent = '🏆 Leaderboard';
+    document.body.appendChild(leaderboardButton);
+    
+    // Create leaderboard overlay
+    const leaderboardOverlay = document.createElement('div');
+    leaderboardOverlay.id = 'leaderboardOverlay';
+    leaderboardOverlay.className = 'overlay';
+    leaderboardOverlay.innerHTML = `
+        <div class="overlay-content">
+            <h2>Leaderboard</h2>
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+            <button class="close-button">Close</button>
+        </div>
+    `;
+    document.body.appendChild(leaderboardOverlay);
+    
+    // Add leaderboard button click handler
+    leaderboardButton.addEventListener('click', () => {
+        updateLeaderboard();
+        leaderboardOverlay.style.display = 'flex';
+    });
+    
+    // Add close button handler
+    leaderboardOverlay.querySelector('.close-button').addEventListener('click', () => {
+        leaderboardOverlay.style.display = 'none';
+    });
     
     // Initialize asteroid belt
     for (let i = 0; i < ASTEROID_COUNT; i++) {
