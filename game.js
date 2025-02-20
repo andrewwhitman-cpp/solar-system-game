@@ -586,7 +586,7 @@ function updatePlanet(planet, dt) {
         // Collision with sun - apply penalty
         score -= 10000;
         document.getElementById('scoreValue').textContent = score;
-        textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Sun Collision!", -1000));
+        textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Sun Collision!", -10000));
         
         return false;
     }
@@ -1023,7 +1023,7 @@ function checkPlanetCollisions() {
                 // Penalty for planet collision
                 score -= 5000;
                 document.getElementById('scoreValue').textContent = score;
-                textPopups.push(new TextPopup((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - 20, "Planet Collision!", -500));
+                textPopups.push(new TextPopup((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - 20, "Planet Collision!", -5000));
             }
         }
     }
@@ -1063,7 +1063,7 @@ function gameLoop() {
                 collidedPlanets.add(i);
                 score -= 2500; // Penalty for asteroid collision
                 document.getElementById('scoreValue').textContent = score;
-                textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Asteroid Hit!", -250));
+                textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Asteroid Hit!", -2500));
             }
         }
     }
