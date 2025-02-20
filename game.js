@@ -311,6 +311,7 @@ function startGame() {
     canvas.addEventListener('mouseup', endDrag);
     document.addEventListener('keydown', handleKeyPress);
     
+    /*
     // Add leaderboard button
     const leaderboardButton = document.createElement('div');
     leaderboardButton.id = 'leaderboardButton';
@@ -349,6 +350,7 @@ function startGame() {
     leaderboardOverlay.querySelector('.close-button').addEventListener('click', () => {
         leaderboardOverlay.style.display = 'none';
     });
+    */
     
     // Initialize asteroid belt
     for (let i = 0; i < ASTEROID_COUNT; i++) {
@@ -610,8 +612,9 @@ function updatePlanet(planet, dt) {
         
         // Calculate orbit stability multiplier based on radius consistency
         const orbitRadiusRange = planet.maxOrbitRadius - planet.minOrbitRadius;
-        const radiusRangeThreshold = 100; // Threshold for maximum multiplier
-        const stabilityMultiplier = Math.min(5, Math.max(1, Math.floor(radiusRangeThreshold / orbitRadiusRange)));
+        // const radiusRangeThreshold = 100; // Threshold for maximum multiplier
+        const stabilityRangeScore = Math.floor((2500 / (orbitRadiusRange + 100)) - 10);
+        const stabilityMultiplier = Math.min(10, Math.max(1, stabilityRangeScore));
         
         // Base orbit completion bonus plus radius-based bonus, multiplied by stability factor
         let orbitBonus = (100 + orbitRadiusScore) * stabilityMultiplier;
@@ -714,9 +717,20 @@ function drawGame() {
     // Draw background
     drawBackground(time);
 
-    // Draw orbital distance indicators
-    const orbitDistances = [100, 200, 300, 400, 500];
+    // Draw fine orbital distance indicators (every 10 units)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 0.5;
+    for (let radius = 10; radius <= 500; radius += 10) {
+        if (radius % 100 === 0) continue; // Skip multiples of 100 as they'll be drawn later
+        ctx.beginPath();
+        ctx.arc(sun.x, sun.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Draw major orbital distance indicators
+    const orbitDistances = [100, 200, 300, 400, 500];
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
     ctx.textAlign = 'left';
     ctx.font = '12px Arial';
@@ -733,6 +747,7 @@ function drawGame() {
     
     // Reset line dash for other drawings
     ctx.setLineDash([]);
+    ctx.lineWidth = 1;
 
     // Draw star with animated surface
     const gradient = ctx.createRadialGradient(

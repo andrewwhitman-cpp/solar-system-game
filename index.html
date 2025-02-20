@@ -41,6 +41,23 @@
         .menu-button:hover {
             background: rgba(255, 255, 255, 0.1);
         }
+        .store-button {
+            position: fixed;
+            top: 80px;
+            left: 30px;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 3;
+            font-size: 16px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .store-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
         .overlay {
             display: none;
             position: fixed;
@@ -82,7 +99,6 @@
             color: white;
             font-family: Arial, sans-serif;
             z-index: 3;
-            text-align: right;
         }
     </style>
     <style>
@@ -175,6 +191,7 @@
     </audio>
     <canvas id="backgroundCanvas"></canvas>
     <div id="menuButton" class="menu-button">☰ Menu</div>
+    <!-- <div id="storeButton" class="store-button">🛍️ Store</div> -->
     <div id="instructionsOverlay" class="overlay">
         <div class="overlay-content">
             <h2>Instructions</h2>
