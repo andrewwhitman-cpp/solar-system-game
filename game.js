@@ -497,9 +497,7 @@ function initMusicOnFirstInteraction() {
 
 function handleKeyPress(e) {
     initMusicOnFirstInteraction();
-    if (e.key.toLowerCase() === 'r') {
-        resetGame();
-    } else if (e.key.toLowerCase() === 'm') {
+    if (e.key.toLowerCase() === 'm') {
         toggleMusic();
     } else if (e.key.toLowerCase() === 'n') {
         playNextTrack();
