@@ -311,6 +311,7 @@ function startGame() {
     canvas.addEventListener('mouseup', endDrag);
     document.addEventListener('keydown', handleKeyPress);
     
+    /*
     // Add leaderboard button
     const leaderboardButton = document.createElement('div');
     leaderboardButton.id = 'leaderboardButton';
@@ -349,6 +350,7 @@ function startGame() {
     leaderboardOverlay.querySelector('.close-button').addEventListener('click', () => {
         leaderboardOverlay.style.display = 'none';
     });
+    */
     
     // Initialize asteroid belt
     for (let i = 0; i < ASTEROID_COUNT; i++) {
