@@ -716,9 +716,20 @@ function drawGame() {
     // Draw background
     drawBackground(time);
 
-    // Draw orbital distance indicators
-    const orbitDistances = [100, 200, 300, 400, 500];
+    // Draw fine orbital distance indicators (every 10 units)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 0.5;
+    for (let radius = 10; radius <= 500; radius += 10) {
+        if (radius % 100 === 0) continue; // Skip multiples of 100 as they'll be drawn later
+        ctx.beginPath();
+        ctx.arc(sun.x, sun.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Draw major orbital distance indicators
+    const orbitDistances = [100, 200, 300, 400, 500];
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
     ctx.textAlign = 'left';
     ctx.font = '12px Arial';
@@ -735,6 +746,7 @@ function drawGame() {
     
     // Reset line dash for other drawings
     ctx.setLineDash([]);
+    ctx.lineWidth = 1;
 
     // Draw star with animated surface
     const gradient = ctx.createRadialGradient(
