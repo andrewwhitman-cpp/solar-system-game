@@ -84,8 +84,91 @@
             z-index: 3;
         }
     </style>
+    <style>
+        #playerNameOverlay {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 5;
+            justify-content: center;
+            align-items: center;
+        }
+        #playerNameForm {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #playerNameInput {
+            margin: 20px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            width: 200px;
+        }
+        #leaderboardButton {
+            position: fixed;
+            top: 30px;
+            right: 120px;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 3;
+            font-size: 16px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        #leaderboardButton:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        #leaderboardOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 4;
+            justify-content: center;
+            align-items: center;
+        }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .leaderboard-table th {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
 </head>
 <body>
+    <div id="playerNameOverlay">
+        <form id="playerNameForm">
+            <h2>Welcome to Orbital Physics Game!</h2>
+            <p>Please enter your name to begin:</p>
+            <input type="text" id="playerNameInput" required minlength="2" maxlength="20" placeholder="Your name">
+            <button type="submit" class="close-button">Start Game</button>
+        </form>
+    </div>
     <audio id="bgMusic" loop>
         <source src="public/audio/Orbital Resonance - Applefish.mp3" type="audio/mp3">
     </audio>
