@@ -1,10 +1,56 @@
-import { Sun, STAR_TYPES } from './src/entities/Sun.js';
-import Asteroid from './src/entities/Asteroid.js';
-import Planet from './src/entities/Planet.js';
+// Constants
+const G = 0.2; // Increased gravitational constant for stronger pull
+const MIN_DISTANCE = 5;
 
 // Player and leaderboard variables
 let currentPlayer = null;
 let leaderboardData = [];
+
+// Star type definitions based on real stellar classifications
+const STAR_TYPES = {
+    O: { // Blue supergiants
+        mass: 400000,
+        radius: 50,
+        color: '#9DB4FF',
+        name: 'Blue Supergiant'
+    },
+    B: { // Blue-white giants
+        mass: 300000,
+        radius: 45,
+        color: '#A7B8FF',
+        name: 'Blue-White Giant'
+    },
+    A: { // White stars
+        mass: 250000,
+        radius: 40,
+        color: '#CAD7FF',
+        name: 'White Star'
+    },
+    F: { // Yellow-white stars
+        mass: 200000,
+        radius: 35,
+        color: '#F8F7FF',
+        name: 'Yellow-White Star'
+    },
+    G: { // Yellow stars (like our Sun)
+        mass: 180000,
+        radius: 30,
+        color: '#FFF4EA',
+        name: 'Yellow Star'
+    },
+    K: { // Orange stars
+        mass: 150000,
+        radius: 25,
+        color: '#FFD2A1',
+        name: 'Orange Star'
+    },
+    M: { // Red dwarfs
+        mass: 100000,
+        radius: 20,
+        color: '#FFB56C',
+        name: 'Red Dwarf'
+    }
+};
 
 // Game state
 let canvas, ctx;
@@ -148,7 +194,62 @@ function drawBackground(time) {
 
 // Create asteroid
 function createAsteroid() {
-    return new Asteroid(canvas.width, canvas.height);
+    const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+    let x, y, vx, vy;
+    
+    switch(side) {
+        case 0: // top
+            x = Math.random() * canvas.width;
+            y = -ASTEROID_SIZE.max;
+            vx = (Math.random() - 0.5) * ASTEROID_SPEED;
+            vy = Math.random() * ASTEROID_SPEED;
+            break;
+        case 1: // right
+            x = canvas.width + ASTEROID_SIZE.max;
+            y = Math.random() * canvas.height;
+            vx = -Math.random() * ASTEROID_SPEED;
+            vy = (Math.random() - 0.5) * ASTEROID_SPEED;
+            break;
+        case 2: // bottom
+            x = Math.random() * canvas.width;
+            y = canvas.height + ASTEROID_SIZE.max;
+            vx = (Math.random() - 0.5) * ASTEROID_SPEED;
+            vy = -Math.random() * ASTEROID_SPEED;
+            break;
+        case 3: // left
+            x = -ASTEROID_SIZE.max;
+            y = Math.random() * canvas.height;
+            vx = Math.random() * ASTEROID_SPEED;
+            vy = (Math.random() - 0.5) * ASTEROID_SPEED;
+            break;
+    }
+    
+    const radius = ASTEROID_SIZE.min + Math.random() * (ASTEROID_SIZE.max - ASTEROID_SIZE.min);
+    const vertices = [];
+    const vertexCount = Math.floor(Math.random() * 4) + 6; // 6-9 vertices
+    
+    // Generate irregular polygon vertices
+    for (let i = 0; i < vertexCount; i++) {
+        const angle = (i / vertexCount) * Math.PI * 2;
+        const variance = 0.5 + Math.random() * 0.5; // 50-100% of radius
+        vertices.push({
+            x: Math.cos(angle) * radius * variance,
+            y: Math.sin(angle) * radius * variance
+        });
+    }
+    
+    return {
+        x,
+        y,
+        vx,
+        vy,
+        radius,
+        vertices,
+        mass: 50, // Fixed mass for asteroids
+        color: '#808080',
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.02 // Random rotation speed
+    };
 }
 
 // Initialize game
@@ -190,7 +291,19 @@ function startGame() {
     initBackground();
     
     // Create random star at center
-    sun = new Sun(canvas.width / 2, canvas.height / 2);
+    const starTypes = Object.keys(STAR_TYPES);
+    const randomType = starTypes[Math.floor(Math.random() * starTypes.length)];
+    const starProperties = STAR_TYPES[randomType];
+    
+    sun = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        mass: starProperties.mass,
+        radius: starProperties.radius,
+        color: starProperties.color,
+        type: randomType,
+        name: starProperties.name
+    };
     
     // Event listeners
     canvas.addEventListener('mousedown', startDrag);
@@ -301,13 +414,16 @@ function endDrag(e) {
     const dy = pos.y - dragStart.y;
     
     const initialAngle = Math.atan2(dragStart.y - sun.y, dragStart.x - sun.x);
-    const planet = new Planet(
-        dragStart.x,
-        dragStart.y,
-        dx * 0.05,
-        dy * 0.05,
-        nextPlanetPreview
-    );
+    const planet = {
+        x: dragStart.x,
+        y: dragStart.y,
+        vx: dx * 0.05,
+        vy: dy * 0.05,
+        initialAngle: initialAngle,
+        lastAngle: initialAngle,
+        totalRotation: 0,
+        ...nextPlanetPreview
+    };
     
     // Generate next planet preview
     nextPlanetPreview = generatePlanetProperties();
@@ -415,32 +531,169 @@ function calculateGravity(body1, body2) {
 }
 
 function updatePlanet(planet, dt) {
-    const result = planet.update(dt, sun, planets, asteroids);
+    // Calculate gravitational force from sun
+    const gravity = calculateGravity(planet, sun);
     
-    if (result.collision === 'sun') {
+    // Calculate gravitational forces from other planets
+    planets.forEach(otherPlanet => {
+        if (otherPlanet !== planet) {
+            const planetGravity = calculateGravity(planet, otherPlanet);
+            gravity.fx += planetGravity.fx;
+            gravity.fy += planetGravity.fy;
+        }
+    });
+    
+    // Update velocity
+    planet.vx += (gravity.fx / planet.mass) * dt;
+    planet.vy += (gravity.fy / planet.mass) * dt;
+    
+    // Update position
+    planet.x += planet.vx * dt;
+    planet.y += planet.vy * dt;
+    
+    // Check if planet is in stable orbit
+    const dx = planet.x - sun.x;
+    const dy = planet.y - sun.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Calculate current speed
+    const speed = Math.sqrt(planet.vx * planet.vx + planet.vy * planet.vy);
+    
+    // Track min and max orbit radius
+    if (!planet.maxOrbitRadius || distance > planet.maxOrbitRadius) {
+        planet.maxOrbitRadius = distance;
+    }
+    if (!planet.minOrbitRadius || distance < planet.minOrbitRadius) {
+        planet.minOrbitRadius = distance;
+    }
+    
+    // Track top speed
+    if (!planet.topSpeed || speed > planet.topSpeed) {
+        planet.topSpeed = speed;
+    }
+    
+    // Track minimum speed
+    if (!planet.minSpeed || speed < planet.minSpeed) {
+        planet.minSpeed = speed;
+    }
+    
+    // Track orbit shape (store min and max radius)
+    if (!planet.minOrbitRadius || distance < planet.minOrbitRadius) {
+        planet.minOrbitRadius = distance;
+    }
+    
+    if (distance < sun.radius + planet.radius) {
+        // Collision with sun - apply penalty
         score -= 1000;
         document.getElementById('scoreValue').textContent = score;
         textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Sun Collision!", -1000));
+        
         return false;
     }
     
-    if (result.orbitComplete) {
-        score += result.bonus;
+    // Track angular position and complete orbits
+    const currentAngle = Math.atan2(dy, dx);
+    
+    // Calculate angular change, handling the -π to π transition
+    let deltaAngle = currentAngle - planet.lastAngle;
+    if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
+    if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
+    
+    planet.totalRotation += deltaAngle;
+    planet.lastAngle = currentAngle;
+    
+    // Check for complete orbit (2π rotation from initial angle)
+    if (Math.abs(planet.totalRotation) >= 2 * Math.PI) {
+        // Calculate orbit radius score based on average orbit radius
+        const avgOrbitRadius = (planet.maxOrbitRadius + planet.minOrbitRadius) / 2;
+        const orbitRadiusScore = Math.floor(avgOrbitRadius ** 2 / 50);
+        
+        // Calculate orbit stability multiplier based on radius consistency
+        const orbitRadiusRange = planet.maxOrbitRadius - planet.minOrbitRadius;
+        const radiusRangeThreshold = 100; // Threshold for maximum multiplier
+        const stabilityMultiplier = Math.min(5, Math.max(1, Math.floor(radiusRangeThreshold / orbitRadiusRange)));
+        
+        // Base orbit completion bonus plus radius-based bonus, multiplied by stability factor
+        let orbitBonus = (100 + orbitRadiusScore) * stabilityMultiplier;
+        
+        score += orbitBonus;
         document.getElementById('scoreValue').textContent = score;
-        const bonusText = result.stabilityMultiplier > 1 ? 
-            `Orbit Bonus (${result.stabilityMultiplier}x stable orbit)` : "Orbit Bonus";
-        textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, bonusText, result.bonus));
+        planet.totalRotation = 0;
+        
+        // Show orbit bonus popup with stability multiplier info
+        const bonusText = stabilityMultiplier > 1 ? `Orbit Bonus (${stabilityMultiplier}x stable orbit)` : "Orbit Bonus";
+        textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, bonusText, orbitBonus));
+        
+        // Reset orbit tracking for next orbit
+        planet.minOrbitRadius = null;
+        planet.maxOrbitRadius = null;
+        planet.topSpeed = null;
+        planet.minSpeed = null;
     }
     
-    if (result.threading) {
-        score += result.bonus;
-        document.getElementById('scoreValue').textContent = score;
-        textPopups.push(new TextPopup(
-            planet.x,
-            planet.y - planet.radius - 20,
-            "Asteroid Threading!",
-            result.bonus
-        ));
+    // Check for asteroid threading
+    const THREADING_DISTANCE = 75; // Distance threshold for threading detection
+    const MIN_SAFE_DISTANCE = 20; // Minimum safe distance to avoid collision
+    const MIN_DISTANCE_FOR_NEW_BONUS = 150; // Minimum distance required from last bonus position
+    
+    // Initialize last threading position if not exists
+    if (!planet.lastThreadingX) {
+        planet.lastThreadingX = null;
+        planet.lastThreadingY = null;
+    }
+    
+    // Find pairs of nearby asteroids
+    for (let i = 0; i < asteroids.length; i++) {
+        for (let j = i + 1; j < asteroids.length; j++) {
+            const ast1 = asteroids[i];
+            const ast2 = asteroids[j];
+            
+            // Calculate distances between planet and both asteroids
+            const d1 = Math.sqrt((planet.x - ast1.x) ** 2 + (planet.y - ast1.y) ** 2);
+            const d2 = Math.sqrt((planet.x - ast2.x) ** 2 + (planet.y - ast2.y) ** 2);
+            
+            // Check if both asteroids are within threading distance
+            if (d1 < THREADING_DISTANCE && d2 < THREADING_DISTANCE) {
+                // Calculate if planet is between asteroids
+                const astDist = Math.sqrt((ast1.x - ast2.x) ** 2 + (ast1.y - ast2.y) ** 2);
+                
+                // Use triangle perimeter comparison for between-ness check
+                if (Math.abs((d1 + d2) - astDist) < 1) {
+                    // Ensure safe distance from both asteroids
+                    if (d1 > MIN_SAFE_DISTANCE && d2 > MIN_SAFE_DISTANCE) {
+                        // Check distance from last threading bonus position
+                        let canAwardBonus = true;
+                        if (planet.lastThreadingX !== null) {
+                            const distFromLastBonus = Math.sqrt(
+                                (planet.x - planet.lastThreadingX) ** 2 + 
+                                (planet.y - planet.lastThreadingY) ** 2
+                            );
+                            canAwardBonus = distFromLastBonus >= MIN_DISTANCE_FOR_NEW_BONUS;
+                        }
+                        
+                        if (canAwardBonus) {
+                            // Calculate bonus based on threading precision
+                            // const precision = 1 - Math.min(d1, d2) / THREADING_DISTANCE;
+                            const precision = 1 / (Math.log(Math.min(d1, d1) / THREADING_DISTANCE + 1));
+                            const bonus = Math.floor(2500 * precision);
+                            
+                            score += bonus;
+                            document.getElementById('scoreValue').textContent = score;
+                            textPopups.push(new TextPopup(
+                                planet.x,
+                                planet.y - planet.radius - 20,
+                                "Asteroid Threading!",
+                                bonus
+                            ));
+                            
+                            // Update last threading position
+                            planet.lastThreadingX = planet.x;
+                            planet.lastThreadingY = planet.y;
+                        }
+                    }
+                }
+            }
+        }
     }
     
     return true;
