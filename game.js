@@ -983,6 +983,61 @@ function updateAsteroids() {
     }
 }
 
+let fragments = [];
+
+function createFragment(x, y, parentObject) {
+    const fragmentSize = parentObject.radius * (0.2 + Math.random() * 0.3); // 20-50% of parent size
+    const fragmentSpeed = 2 + Math.random() * 3; // Random speed
+    const angle = Math.random() * Math.PI * 2; // Random direction
+    
+    return {
+        x,
+        y,
+        vx: Math.cos(angle) * fragmentSpeed,
+        vy: Math.sin(angle) * fragmentSpeed,
+        radius: fragmentSize,
+        mass: parentObject.mass * (fragmentSize / parentObject.radius),
+        color: parentObject.color,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.1,
+        lifetime: 2, // Seconds to live
+        opacity: 1
+    };
+}
+
+function updateFragments(dt) {
+    fragments = fragments.filter(fragment => {
+        // Update position
+        fragment.x += fragment.vx * dt;
+        fragment.y += fragment.vy * dt;
+        
+        // Update rotation
+        fragment.rotation += fragment.rotationSpeed;
+        
+        // Update lifetime and opacity
+        fragment.lifetime -= dt;
+        fragment.opacity = fragment.lifetime / 2;
+        
+        return fragment.lifetime > 0;
+    });
+}
+
+function drawFragments() {
+    fragments.forEach(fragment => {
+        ctx.save();
+        ctx.globalAlpha = fragment.opacity;
+        ctx.translate(fragment.x, fragment.y);
+        ctx.rotate(fragment.rotation);
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, fragment.radius, 0, Math.PI * 2);
+        ctx.fillStyle = fragment.color;
+        ctx.fill();
+        
+        ctx.restore();
+    });
+}
+
 function checkPlanetCollisions() {
     const collidedPlanets = new Set();
     
@@ -998,6 +1053,17 @@ function checkPlanetCollisions() {
             if (distance < p1.radius + p2.radius) {
                 collidedPlanets.add(i);
                 collidedPlanets.add(j);
+                
+                // Create fragments at collision point
+                const collisionX = (p1.x + p2.x) / 2;
+                const collisionY = (p1.y + p2.y) / 2;
+                
+                // Generate fragments for both planets
+                for (let k = 0; k < 5; k++) {
+                    fragments.push(createFragment(collisionX, collisionY, p1));
+                    fragments.push(createFragment(collisionX, collisionY, p2));
+                }
+                
                 // Penalty for planet collision
                 score -= 5000;
                 document.getElementById('scoreValue').textContent = score;
@@ -1013,7 +1079,6 @@ function checkPlanetCollisions() {
     }
 }
 
-// Game loop
 function gameLoop() {
     const dt = 0.1; // Time step
     
@@ -1022,6 +1087,9 @@ function gameLoop() {
     
     // Update and check asteroid collisions
     updateAsteroids();
+    
+    // Update fragments
+    updateFragments(dt);
     
     // Check for collisions between planets and asteroids
     const collidedAsteroids = new Set();
@@ -1039,6 +1107,17 @@ function gameLoop() {
             if (distance < planet.radius + asteroid.radius) {
                 collidedAsteroids.add(j);
                 collidedPlanets.add(i);
+                
+                // Create fragments at collision point
+                const collisionX = (planet.x + asteroid.x) / 2;
+                const collisionY = (planet.y + asteroid.y) / 2;
+                
+                // Generate fragments
+                for (let k = 0; k < 3; k++) {
+                    fragments.push(createFragment(collisionX, collisionY, planet));
+                    fragments.push(createFragment(collisionX, collisionY, asteroid));
+                }
+                
                 score -= 2500; // Penalty for asteroid collision
                 document.getElementById('scoreValue').textContent = score;
                 textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Asteroid Hit!", -2500));
@@ -1062,6 +1141,7 @@ function gameLoop() {
     
     // Draw game
     drawGame();
+    drawFragments(); // Draw fragments after everything else
     
     requestAnimationFrame(gameLoop);
 }
