@@ -254,29 +254,7 @@ function createAsteroid() {
 
 // Initialize game
 function init() {
-    // Check if player name exists in localStorage
-    const storedPlayerName = localStorage.getItem('playerName');
-    if (storedPlayerName) {
-        currentPlayer = storedPlayerName;
-        document.getElementById('playerNameOverlay').style.display = 'none';
-        startGame();
-        return;
-    }
-
-    // Handle player name form submission
-    const playerNameForm = document.getElementById('playerNameForm');
-    playerNameForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const playerNameInput = document.getElementById('playerNameInput');
-        const playerName = playerNameInput.value.trim();
-        if (playerName) {
-            currentPlayer = playerName;
-            // Store player name in localStorage
-            localStorage.setItem('playerName', playerName);
-            document.getElementById('playerNameOverlay').style.display = 'none';
-            startGame();
-        }
-    });
+    startGame();
 }
 
 function startGame() {
