@@ -1,23 +1,35 @@
-// Menu functionality
+// Menu & instructions overlay
 document.addEventListener('DOMContentLoaded', () => {
     const menuButton = document.getElementById('menuButton');
     const instructionsOverlay = document.getElementById('instructionsOverlay');
-    const closeInstructions = document.getElementById('closeInstructions');
+    const closeBtn = document.getElementById('closeInstructions');
 
-    // Show instructions overlay when menu button is clicked
-    menuButton.addEventListener('click', () => {
+    function openInstructions() {
         instructionsOverlay.style.display = 'flex';
-    });
+        instructionsOverlay.setAttribute('aria-hidden', 'false');
+        closeBtn.focus();
+    }
 
-    // Hide instructions overlay when close button is clicked
-    closeInstructions.addEventListener('click', () => {
+    function closeInstructions() {
         instructionsOverlay.style.display = 'none';
-    });
+        instructionsOverlay.setAttribute('aria-hidden', 'true');
+        menuButton.focus();
+    }
 
-    // Hide instructions overlay when clicking outside the content
+    menuButton.addEventListener('click', openInstructions);
+
+    closeBtn.addEventListener('click', closeInstructions);
+
     instructionsOverlay.addEventListener('click', (e) => {
         if (e.target === instructionsOverlay) {
-            instructionsOverlay.style.display = 'none';
+            closeInstructions();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && instructionsOverlay.style.display === 'flex') {
+            e.preventDefault();
+            closeInstructions();
         }
     });
 });

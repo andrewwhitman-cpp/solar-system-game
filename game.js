@@ -2,10 +2,6 @@
 const G = 0.2; // Increased gravitational constant for stronger pull
 const MIN_DISTANCE = 5;
 
-// Player and leaderboard variables
-let currentPlayer = null;
-let leaderboardData = [];
-
 // Star type definitions based on real stellar classifications
 const STAR_TYPES = {
     O: { // Blue supergiants
@@ -66,6 +62,9 @@ let launchRipples = [];
 let score = 0;
 let textPopups = [];
 let orbitsCompleted = 0;
+/** Real frame delta (seconds) for UI animations */
+let frameDeltaTime = 0.016;
+let lastFrameTime = 0;
 
 // Background state
 let stars = [];
@@ -77,6 +76,17 @@ const NEBULA_COUNT = 5;
 const ASTEROID_COUNT = 20;
 const ASTEROID_SPEED = 1;
 const ASTEROID_SIZE = { min: 5, max: 10 };
+
+function makeSpotOffsets() {
+    const spots = [];
+    for (let i = 0; i < 5; i++) {
+        spots.push({
+            ox: (Math.random() * 2 - 1) * 0.7,
+            oy: (Math.random() * 2 - 1) * 0.7
+        });
+    }
+    return spots;
+}
 
 // Next planet preview
 let nextPlanetPreview = generatePlanetProperties();
@@ -136,21 +146,24 @@ class TextPopup {
         ctx.save();
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        
-        // Use red for negative points, green for stable orbits, white for others
+
         let color;
         if (this.points < 0) {
             color = 'red';
         } else if (this.text.includes('stable orbit')) {
-            color = 'green'; // Bright green
+            color = 'green';
         } else {
             color = 'white';
         }
-        ctx.fillStyle = `rgba(${color === 'red' ? '255, 0, 0' : color === 'green' ? '0, 255, 0' : '255, 255, 255'}, ${this.opacity})`;
-        
-        // Add plus sign only for positive points
+        const rgb = color === 'red' ? '255, 0, 0' : color === 'green' ? '0, 255, 0' : '255, 255, 255';
         const pointsText = this.points < 0 ? this.points : `+${this.points}`;
-        ctx.fillText(`${this.text} ${pointsText}`, this.x, this.y);
+        const line = `${this.text} ${pointsText}`;
+
+        ctx.strokeStyle = `rgba(0, 0, 0, ${this.opacity * 0.55})`;
+        ctx.lineWidth = 3;
+        ctx.strokeText(line, this.x, this.y);
+        ctx.fillStyle = `rgba(${rgb}, ${this.opacity})`;
+        ctx.fillText(line, this.x, this.y);
         ctx.restore();
     }
 }
@@ -285,6 +298,9 @@ function startGame() {
         type: randomType,
         name: starProperties.name
     };
+
+    const starNameEl = document.getElementById('starNameDisplay');
+    if (starNameEl) starNameEl.textContent = sun.name;
     
     // Event listeners — window move/up so drag works when pointer leaves the canvas
     canvas.addEventListener('mousedown', startDrag);
@@ -345,8 +361,66 @@ function startGame() {
         asteroids.push(createAsteroid());
     }
     
+    lastFrameTime = 0;
+    window.addEventListener('resize', scheduleResize);
+
     // Start game loop
     requestAnimationFrame(gameLoop);
+}
+
+let resizeTimer = null;
+function scheduleResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeGame, 120);
+}
+
+function resizeGame() {
+    if (!canvas || !backgroundCanvas || !sun) return;
+    const oldW = canvas.width;
+    const oldH = canvas.height;
+    const newW = Math.max(320, window.innerWidth - 40);
+    const newH = Math.max(240, window.innerHeight - 40);
+    if (oldW === newW && oldH === newH) return;
+
+    const cx = oldW / 2;
+    const cy = oldH / 2;
+    const sx = newW / oldW;
+    const sy = newH / oldH;
+
+    canvas.width = newW;
+    canvas.height = newH;
+    backgroundCanvas.width = newW;
+    backgroundCanvas.height = newH;
+
+    sun.x = newW / 2;
+    sun.y = newH / 2;
+
+    planets.forEach((p) => {
+        p.x = sun.x + (p.x - cx) * sx;
+        p.y = sun.y + (p.y - cy) * sy;
+    });
+    asteroids.forEach((a) => {
+        a.x = sun.x + (a.x - cx) * sx;
+        a.y = sun.y + (a.y - cy) * sy;
+    });
+    stars.forEach((s) => {
+        s.x = sun.x + (s.x - cx) * sx;
+        s.y = sun.y + (s.y - cy) * sy;
+    });
+    nebulaClouds.forEach((n) => {
+        n.x = sun.x + (n.x - cx) * sx;
+        n.y = sun.y + (n.y - cy) * sy;
+        n.radius *= (sx + sy) / 2;
+    });
+    fragments.forEach((f) => {
+        f.x = sun.x + (f.x - cx) * sx;
+        f.y = sun.y + (f.y - cy) * sy;
+    });
+    launchRipples.forEach((r) => {
+        r.x = sun.x + (r.x - cx) * sx;
+        r.y = sun.y + (r.y - cy) * sy;
+        r.maxR *= (sx + sy) / 2;
+    });
 }
 
 // Event handlers
@@ -422,8 +496,25 @@ function generatePlanetProperties() {
         hasRings,
         ringColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.3)`,
         surfacePattern,
-        mass
+        mass,
+        spotOffsets: makeSpotOffsets()
     };
+}
+
+function formatScore(n) {
+    return Math.round(n).toLocaleString();
+}
+
+function setScoreDisplay(value) {
+    const el = document.getElementById('scoreValue');
+    if (el) el.textContent = formatScore(value);
+}
+
+function updateHud() {
+    const planetsEl = document.getElementById('planetCount');
+    if (planetsEl) planetsEl.textContent = String(planets.length);
+    const orbitsEl = document.getElementById('orbitCount');
+    if (orbitsEl) orbitsEl.textContent = String(orbitsCompleted);
 }
 
 // Audio control
@@ -590,7 +681,7 @@ function updatePlanet(planet, dt) {
     if (distance < sun.radius + planet.radius) {
         // Collision with sun - apply penalty
         score -= 10000;
-        document.getElementById('scoreValue').textContent = score;
+        setScoreDisplay(score);
         textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Sun Collision!", -10000));
         
         return false;
@@ -623,7 +714,8 @@ function updatePlanet(planet, dt) {
         let orbitBonus = (100 + orbitRadiusScore) * stabilityMultiplier;
         
         score += orbitBonus;
-        document.getElementById('scoreValue').textContent = score;
+        orbitsCompleted += 1;
+        setScoreDisplay(score);
         planet.totalRotation = 0;
         
         // Show orbit bonus popup with stability multiplier info
@@ -684,7 +776,7 @@ function updatePlanet(planet, dt) {
                             const bonus = Math.floor(2500 * precision);
                             
                             score += bonus;
-                            document.getElementById('scoreValue').textContent = score;
+                            setScoreDisplay(score);
                             textPopups.push(new TextPopup(
                                 planet.x,
                                 planet.y - planet.radius - 20,
@@ -741,6 +833,7 @@ function drawLaunchRipples() {
  * Animated slingshot feedback: pull direction = launch velocity; longer pull = faster.
  */
 function drawDragLaunchFeedback() {
+    const reduceMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const dx = dragCurrent.x - dragStart.x;
     const dy = dragCurrent.y - dragStart.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -749,7 +842,7 @@ function drawDragLaunchFeedback() {
     const speedNorm = Math.min(1, dist / DRAG_FEEDBACK_MAX_LEN);
     const hue = 185 + speedNorm * 75;
     const lineAlpha = 0.45 + speedNorm * 0.45;
-    const pulse = 0.92 + 0.08 * Math.sin(time * 8);
+    const pulse = reduceMotion ? 1 : 0.92 + 0.08 * Math.sin(time * 8);
 
     const px = dragStart.x;
     const py = dragStart.y;
@@ -796,7 +889,7 @@ function drawDragLaunchFeedback() {
     ctx.stroke();
 
     ctx.setLineDash([14, 10]);
-    ctx.lineDashOffset = -(time * 42) % 24;
+    ctx.lineDashOffset = reduceMotion ? 0 : -(time * 42) % 24;
     ctx.beginPath();
     ctx.moveTo(px, py);
     ctx.lineTo(dragCurrent.x, dragCurrent.y);
@@ -991,15 +1084,15 @@ function drawGame() {
                 ctx.stroke();
             }
             break;
-        case 1: // Spots
-            for(let i = 0; i < 5; i++) {
-                const spotX = previewX + (Math.random() * 2 - 1) * nextPlanetPreview.radius * 0.7;
-                const spotY = previewY + (Math.random() * 2 - 1) * nextPlanetPreview.radius * 0.7;
+        case 1: // Spots (fixed offsets — no flicker)
+            nextPlanetPreview.spotOffsets.forEach((spot) => {
+                const spotX = previewX + spot.ox * nextPlanetPreview.radius;
+                const spotY = previewY + spot.oy * nextPlanetPreview.radius;
                 ctx.beginPath();
                 ctx.arc(spotX, spotY, nextPlanetPreview.radius * 0.2, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, 0.2)`;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                 ctx.fill();
-            }
+            });
             break;
         case 2: // Swirl
             for(let i = 0; i < Math.PI * 2; i += 0.5) {
@@ -1049,7 +1142,7 @@ function drawGame() {
 
     // Update and draw text popups
     textPopups = textPopups.filter(popup => {
-        const alive = popup.update(0.016); // Assuming 60fps
+        const alive = popup.update(frameDeltaTime);
         if (alive) {
             popup.draw(ctx);
         }
@@ -1075,15 +1168,16 @@ function drawGame() {
                     ctx.stroke();
                 }
                 break;
-            case 1: // Spots
-                for(let i = 0; i < 5; i++) {
-                    const spotX = planet.x + (Math.random() * 2 - 1) * planet.radius * 0.7;
-                    const spotY = planet.y + (Math.random() * 2 - 1) * planet.radius * 0.7;
+            case 1: // Spots (fixed offsets — no flicker)
+                if (!planet.spotOffsets) planet.spotOffsets = makeSpotOffsets();
+                planet.spotOffsets.forEach((spot) => {
+                    const spotX = planet.x + spot.ox * planet.radius;
+                    const spotY = planet.y + spot.oy * planet.radius;
                     ctx.beginPath();
                     ctx.arc(spotX, spotY, planet.radius * 0.2, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 255, 255, 0.2)`;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                     ctx.fill();
-                }
+                });
                 break;
             case 2: // Swirl
                 for(let i = 0; i < Math.PI * 2; i += 0.5) {
@@ -1232,7 +1326,7 @@ function checkPlanetCollisions() {
                 
                 // Penalty for planet collision
                 score -= 5000;
-                document.getElementById('scoreValue').textContent = score;
+                setScoreDisplay(score);
                 textPopups.push(new TextPopup((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - 20, "Planet Collision!", -5000));
             }
         }
@@ -1245,10 +1339,17 @@ function checkPlanetCollisions() {
     }
 }
 
-function gameLoop() {
-    const dt = 0.1; // Time step
+function gameLoop(now) {
+    if (lastFrameTime === 0) {
+        frameDeltaTime = 0.016;
+    } else {
+        frameDeltaTime = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+    }
+    lastFrameTime = now;
 
-    updateLaunchRipples(dt);
+    const dt = 0.1; // Fixed simulation step (preserves original feel)
+
+    updateLaunchRipples(frameDeltaTime);
 
     // Update planets
     planets = planets.filter(planet => updatePlanet(planet, dt));
@@ -1287,7 +1388,7 @@ function gameLoop() {
                 }
                 
                 score -= 2500; // Penalty for asteroid collision
-                document.getElementById('scoreValue').textContent = score;
+                setScoreDisplay(score);
                 textPopups.push(new TextPopup(planet.x, planet.y - planet.radius - 20, "Asteroid Hit!", -2500));
             }
         }
@@ -1310,7 +1411,9 @@ function gameLoop() {
     // Draw game
     drawGame();
     drawFragments(); // Draw fragments after everything else
-    
+
+    updateHud();
+
     requestAnimationFrame(gameLoop);
 }
 
@@ -1321,8 +1424,8 @@ function resetGame() {
     score = 0;
     orbitsCompleted = 0;
     
-    // Update UI
-    document.getElementById('scoreValue').textContent = score;
+    setScoreDisplay(score);
+    updateHud();
 }
 
 // Start game
