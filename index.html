@@ -106,13 +106,6 @@
             opacity: 0.9;
         }
 
-        .hud-hint {
-            margin-top: 8px;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.45);
-            letter-spacing: 0.03em;
-        }
-
         .menu-button {
             position: fixed;
             left: var(--hud-pad);
@@ -218,23 +211,18 @@
 </head>
 <body>
 
-    <audio id="bgMusic" loop>
-        <source src="public/audio/Orbital Resonance - Applefish.mp3" type="audio/mp3">
-    </audio>
     <canvas id="backgroundCanvas" aria-hidden="true"></canvas>
     <button type="button" id="menuButton" class="menu-button" aria-label="Open instructions" aria-haspopup="dialog" aria-controls="instructionsOverlay">Menu</button>
     <div id="score" class="hud-panel hud-score">
         <div class="hud-score-line">Score <span id="scoreValue">0</span></div>
         <div id="hudStats" class="hud-sub"><span id="planetCount">0</span> planets · <span id="orbitCount">0</span> orbits</div>
         <div id="starNameDisplay" class="hud-sub hud-star" aria-live="polite"></div>
-        <div class="hud-hint">M music · N next track</div>
     </div>
     <div id="instructionsOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="instructionsTitle" aria-hidden="true">
         <div class="overlay-content">
             <h2 id="instructionsTitle">How to play</h2>
             <p>Click and drag anywhere: the arrow shows launch direction. Longer pull = faster launch. Release to send the planet.</p>
             <p>Stay in orbit around the star to score. Avoid the sun, asteroids, and other planets.</p>
-            <p>Keyboard: <strong>M</strong> toggles music, <strong>N</strong> skips to another track.</p>
             <button type="button" id="closeInstructions" class="close-button">Close</button>
         </div>
     </div>

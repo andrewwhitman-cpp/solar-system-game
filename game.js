@@ -313,7 +313,6 @@ function startGame() {
     window.addEventListener('touchend', (e) => {
         if (isDragging) endDrag(e);
     });
-    document.addEventListener('keydown', handleKeyPress);
     
     /*
     // Add leaderboard button
@@ -429,7 +428,6 @@ function startDrag(e) {
     isDragging = true;
     dragStart = getPointerPos(e);
     dragCurrent = { ...dragStart };
-    initMusicOnFirstInteraction();
 }
 
 function drag(e) {
@@ -515,77 +513,6 @@ function updateHud() {
     if (planetsEl) planetsEl.textContent = String(planets.length);
     const orbitsEl = document.getElementById('orbitCount');
     if (orbitsEl) orbitsEl.textContent = String(orbitsCompleted);
-}
-
-// Audio control
-const bgMusic = document.getElementById('bgMusic');
-let isMusicPlaying = true;
-let currentTrackIndex = -1;
-
-// List of all available music tracks
-const musicTracks = [
-    'public/audio/Andromeda Applefish.mp3',
-    'public/audio/Astrosat Applefish.mp3',
-    'public/audio/Earthrise Applefish.mp3',
-    // 'public/audio/Event Horizon - Applefish.mp3',
-    // 'public/audio/In Orbit - Applefish.mp3',
-    'public/audio/Into the Aether - Applefish.mp3',
-    'public/audio/Orbital Resonance - Applefish.mp3',
-    'public/audio/Particles - Applefish.mp3',
-    'public/audio/Primordial Soup - Applefish.mp3',
-    'public/audio/Starsoaked - Applefish.mp3',
-    'public/audio/The Ocean Held Me Close in Its Arms - Applefish.mp3'
-];
-
-// Function to get a random track index different from the current one
-function getRandomTrackIndex() {
-    if (musicTracks.length <= 1) return 0;
-    let newIndex;
-    do {
-        newIndex = Math.floor(Math.random() * musicTracks.length);
-    } while (newIndex === currentTrackIndex);
-    return newIndex;
-}
-
-// Function to play the next random track
-function playNextTrack() {
-    currentTrackIndex = getRandomTrackIndex();
-    bgMusic.src = musicTracks[currentTrackIndex];
-    bgMusic.play().catch(error => {
-        console.log('Autoplay prevented:', error);
-        isMusicPlaying = false;
-    });
-}
-
-function toggleMusic() {
-    if (isMusicPlaying) {
-        bgMusic.pause();
-    } else {
-        bgMusic.play();
-    }
-    isMusicPlaying = !isMusicPlaying;
-}
-
-// Add event listener for when a track ends
-bgMusic.addEventListener('ended', playNextTrack);
-
-// Initialize music system but don't autoplay
-let hasUserInteracted = false;
-
-function initMusicOnFirstInteraction() {
-    if (!hasUserInteracted) {
-        hasUserInteracted = true;
-        playNextTrack();
-    }
-}
-
-function handleKeyPress(e) {
-    initMusicOnFirstInteraction();
-    if (e.key.toLowerCase() === 'm') {
-        toggleMusic();
-    } else if (e.key.toLowerCase() === 'n') {
-        playNextTrack();
-    }
 }
 
 // Helper functions
