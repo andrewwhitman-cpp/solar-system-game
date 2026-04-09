@@ -60,6 +60,9 @@ let planets = [];
 let asteroids = [];
 let isDragging = false;
 let dragStart = { x: 0, y: 0 };
+let dragCurrent = { x: 0, y: 0 };
+/** Expanding rings when a planet is launched */
+let launchRipples = [];
 let score = 0;
 let textPopups = [];
 let orbitsCompleted = 0;
@@ -283,10 +286,17 @@ function startGame() {
         name: starProperties.name
     };
     
-    // Event listeners
+    // Event listeners — window move/up so drag works when pointer leaves the canvas
     canvas.addEventListener('mousedown', startDrag);
-    canvas.addEventListener('mousemove', drag);
-    canvas.addEventListener('mouseup', endDrag);
+    window.addEventListener('mousemove', drag);
+    window.addEventListener('mouseup', (e) => {
+        if (isDragging) endDrag(e);
+    });
+    canvas.addEventListener('touchstart', startDrag, { passive: false });
+    window.addEventListener('touchmove', drag, { passive: false });
+    window.addEventListener('touchend', (e) => {
+        if (isDragging) endDrag(e);
+    });
     document.addEventListener('keydown', handleKeyPress);
     
     /*
@@ -341,24 +351,55 @@ function startGame() {
 
 // Event handlers
 function startDrag(e) {
+    if (e.cancelable && e.type === 'touchstart') e.preventDefault();
     isDragging = true;
-    dragStart = getMousePos(e);
+    dragStart = getPointerPos(e);
+    dragCurrent = { ...dragStart };
     initMusicOnFirstInteraction();
 }
 
 function drag(e) {
     if (!isDragging) return;
-    
-    const pos = getMousePos(e);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGame();
-    
-    // Draw trajectory prediction line
-    ctx.beginPath();
-    ctx.moveTo(dragStart.x, dragStart.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = '#666';
-    ctx.stroke();
+    if (e.cancelable && e.type === 'touchmove') e.preventDefault();
+    dragCurrent = getPointerPos(e);
+}
+
+function endDrag(e) {
+    if (e && e.cancelable && e.type === 'touchend') e.preventDefault();
+    if (!isDragging) return;
+    isDragging = false;
+
+    const pos = getPointerPos(e);
+    const dx = pos.x - dragStart.x;
+    const dy = pos.y - dragStart.y;
+
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 8) {
+        launchRipples.push({
+            x: dragStart.x,
+            y: dragStart.y,
+            r: 0,
+            maxR: Math.min(120, 40 + dist * 0.35),
+            opacity: 0.85,
+            hue: 200 + Math.min(60, dist * 0.15)
+        });
+    }
+
+    const initialAngle = Math.atan2(dragStart.y - sun.y, dragStart.x - sun.x);
+    const planet = {
+        x: dragStart.x,
+        y: dragStart.y,
+        vx: dx * 0.05,
+        vy: dy * 0.05,
+        initialAngle: initialAngle,
+        lastAngle: initialAngle,
+        totalRotation: 0,
+        ...nextPlanetPreview
+    };
+
+    nextPlanetPreview = generatePlanetProperties();
+
+    planets.push(planet);
 }
 
 function generatePlanetProperties() {
@@ -383,32 +424,6 @@ function generatePlanetProperties() {
         surfacePattern,
         mass
     };
-}
-
-function endDrag(e) {
-    if (!isDragging) return;
-    isDragging = false;
-    
-    const pos = getMousePos(e);
-    const dx = pos.x - dragStart.x;
-    const dy = pos.y - dragStart.y;
-    
-    const initialAngle = Math.atan2(dragStart.y - sun.y, dragStart.x - sun.x);
-    const planet = {
-        x: dragStart.x,
-        y: dragStart.y,
-        vx: dx * 0.05,
-        vy: dy * 0.05,
-        initialAngle: initialAngle,
-        lastAngle: initialAngle,
-        totalRotation: 0,
-        ...nextPlanetPreview
-    };
-    
-    // Generate next planet preview
-    nextPlanetPreview = generatePlanetProperties();
-    
-    planets.push(planet);
 }
 
 // Audio control
@@ -483,11 +498,23 @@ function handleKeyPress(e) {
 }
 
 // Helper functions
-function getMousePos(e) {
+function getPointerPos(e) {
     const rect = canvas.getBoundingClientRect();
+    let clientX;
+    let clientY;
+    if (e.changedTouches && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
+    } else if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
     return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: clientX - rect.left,
+        y: clientY - rect.top
     };
 }
 
@@ -681,6 +708,139 @@ function updatePlanet(planet, dt) {
 // Sun animation state
 let time = 0;
 let flares = [];
+
+// Max drag length used for color / label (matches typical strong launch)
+const DRAG_FEEDBACK_MAX_LEN = 280;
+
+function updateLaunchRipples(dt) {
+    launchRipples = launchRipples.filter((ripple) => {
+        ripple.r += (120 + ripple.maxR) * dt * 2.2;
+        ripple.opacity -= dt * 2.8;
+        return ripple.opacity > 0.02;
+    });
+}
+
+function drawLaunchRipples() {
+    launchRipples.forEach((ripple) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${ripple.hue}, 85%, 60%, ${ripple.opacity * 0.9})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.r * 0.65, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${ripple.hue}, 70%, 75%, ${ripple.opacity * 0.45})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+    });
+}
+
+/**
+ * Animated slingshot feedback: pull direction = launch velocity; longer pull = faster.
+ */
+function drawDragLaunchFeedback() {
+    const dx = dragCurrent.x - dragStart.x;
+    const dy = dragCurrent.y - dragStart.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const nx = dist > 0.001 ? dx / dist : 1;
+    const ny = dist > 0.001 ? dy / dist : 0;
+    const speedNorm = Math.min(1, dist / DRAG_FEEDBACK_MAX_LEN);
+    const hue = 185 + speedNorm * 75;
+    const lineAlpha = 0.45 + speedNorm * 0.45;
+    const pulse = 0.92 + 0.08 * Math.sin(time * 8);
+
+    const px = dragStart.x;
+    const py = dragStart.y;
+    const pr = nextPlanetPreview.radius * pulse;
+
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.beginPath();
+    ctx.arc(px, py, pr + 6 + speedNorm * 4, 0, Math.PI * 2);
+    ctx.strokeStyle = `hsla(${hue}, 70%, 55%, ${0.35 + speedNorm * 0.35})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
+    ctx.fillStyle = nextPlanetPreview.color;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    if (dist < 6) {
+        ctx.font = 'bold 13px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.lineWidth = 3;
+        const hintY = py - pr - 14;
+        ctx.strokeText('Drag to aim — direction & length = velocity', px, hintY);
+        ctx.fillText('Drag to aim — direction & length = velocity', px, hintY);
+        ctx.restore();
+        return;
+    }
+
+    const grad = ctx.createLinearGradient(px, py, dragCurrent.x, dragCurrent.y);
+    grad.addColorStop(0, `hsla(${hue}, 60%, 65%, ${lineAlpha * 0.5})`);
+    grad.addColorStop(1, `hsla(${hue + 25}, 85%, 58%, ${lineAlpha})`);
+
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(dragCurrent.x, dragCurrent.y);
+    ctx.strokeStyle = `hsla(${hue}, 90%, 70%, ${0.2 + speedNorm * 0.25})`;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    ctx.setLineDash([14, 10]);
+    ctx.lineDashOffset = -(time * 42) % 24;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(dragCurrent.x, dragCurrent.y);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+
+    const tipX = dragCurrent.x;
+    const tipY = dragCurrent.y;
+    const ah = 14 + speedNorm * 8;
+    const aw = 9 + speedNorm * 5;
+    const bx = tipX - nx * ah;
+    const by = tipY - ny * ah;
+    const perpX = -ny * aw;
+    const perpY = nx * aw;
+
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(bx + perpX, by + perpY);
+    ctx.lineTo(bx - perpX, by - perpY);
+    ctx.closePath();
+    ctx.fillStyle = `hsla(${hue + 15}, 90%, 62%, ${0.85 + speedNorm * 0.15})`;
+    ctx.fill();
+
+    const midX = (px + tipX) * 0.5 + ny * 14;
+    const midY = (py + tipY) * 0.5 - nx * 14;
+    ctx.font = 'bold 13px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.85})`;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.lineWidth = 3;
+    ctx.strokeText('Release to launch', midX, midY);
+    ctx.fillText('Release to launch', midX, midY);
+
+    const speedLabel = `Speed ${Math.round(speedNorm * 100)}%`;
+    ctx.font = '12px Arial';
+    ctx.strokeText(speedLabel, midX, midY + 16);
+    ctx.fillText(speedLabel, midX, midY + 16);
+
+    ctx.restore();
+}
 
 // Drawing functions
 function drawGame() {
@@ -946,6 +1106,12 @@ function drawGame() {
             ctx.stroke();
         }
     });
+
+    drawLaunchRipples();
+
+    if (isDragging) {
+        drawDragLaunchFeedback();
+    }
 }
 
 // Check for collisions between planets
@@ -1081,7 +1247,9 @@ function checkPlanetCollisions() {
 
 function gameLoop() {
     const dt = 0.1; // Time step
-    
+
+    updateLaunchRipples(dt);
+
     // Update planets
     planets = planets.filter(planet => updatePlanet(planet, dt));
     
