@@ -4,9 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#050508">
-    <meta name="description" content="Launch planets into orbit around a star — physics sandbox with asteroids and scoring.">
-    <title>Orbital Physics Game</title>
+    <meta name="theme-color" content="#070a12">
+
+    <title>Orbits — browser orbital physics game</title>
+    <meta name="description" content="Free in-browser orbital physics: slingshot planets around a star, weave through asteroids, and rack up score for stable orbits. No install — works on desktop and touch.">
+    <meta name="keywords" content="orbital mechanics game, physics game, gravity simulation, browser game, space game, free web game">
+    <meta name="robots" content="index, follow">
+    <meta name="application-name" content="Orbits">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Orbits — browser orbital physics game">
+    <meta property="og:description" content="Slingshot planets into orbit around a star. Dodge asteroids, chain orbits for score — runs in your browser.">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Orbits — browser orbital physics game">
+    <meta name="twitter:description" content="Slingshot planets into orbit around a star. Dodge asteroids, chain orbits for score — runs in your browser.">
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" sizes="any">
+    <link rel="apple-touch-icon" href="favicon.svg">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Orbits",
+      "alternateName": "Orbital physics game",
+      "description": "Browser game: launch planets into orbit around a star, avoid collisions, and score stable orbits and asteroid threading.",
+      "applicationCategory": "GameApplication",
+      "genre": ["Simulation", "Physics", "Casual"],
+      "operatingSystem": "Web browser",
+      "browserRequirements": "Requires JavaScript. HTML5 Canvas.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+
     <style>
         :root {
             --hud-pad: clamp(10px, 3vw, 28px);
